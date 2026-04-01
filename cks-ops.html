@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CKS Operations Dashboard</title>
+    
+    <!-- Preconnect to CDNs -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        /* CSS Variables for Brand Colors */
+        :root {
+            --color-primary: #3b82f6;
+            --color-primary-dark: #1d4ed8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-gray: #6b7280;
+            --color-done: #10b981;
+            --color-in-progress: #f59e0b;
+            --color-blocked: #ef4444;
+            --color-not-started: #6b7280;
+        }
+
+        /* Glass Morphism */
+        .glass {
+            backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-dark {
+            backdrop-filter: blur(16px);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animations */
+        .slide-fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .slide-fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-lift {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Progress Ring */
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dasharray 0.6s ease-in-out;
+        }
+
+        /* Tab Animation */
+        .tab-indicator {
+            transition: transform 0.3s ease;
+        }
+
+        /* Pipeline Flow */
+        .pipeline-stage {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .pipeline-stage::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            color: #64748b;
+        }
+
+        .pipeline-stage:last-child::after {
+            display: none;
+        }
+
+        .pipeline-stage:hover {
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        /* Traffic Light Colors */
+        .authority-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .authority-decide { background-color: var(--color-success); }
+        .authority-approve { background-color: var(--color-warning); }
+        .authority-inform { background-color: var(--color-primary); }
+        .authority-none { background-color: var(--color-gray); }
+
+        /* KPI Cards */
+        .kpi-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .trend-up { color: var(--color-success); }
+        .trend-down { color: var(--color-danger); }
+
+        /* Gantt Chart */
+        .gantt-bar {
+            height: 20px;
+            border-radius: 4px;
+            position: relative;
+            margin: 4px 0;
+        }
+
+        .gantt-done { background-color: var(--color-done); }
+        .gantt-in-progress { background-color: var(--color-in-progress); }
+        .gantt-not-started { background-color: var(--color-not-started); }
+
+        /* Mobile Bottom Navigation */
+        @media (max-width: 768px) {
+            .desktop-tabs { display: none; }
+            .mobile-tabs { display: flex; }
+            .main-content { padding-bottom: 100px; }
+        }
+
+        @media (min-width: 769px) {
+            .desktop-tabs { display: flex; }
+            .mobile-tabs { display: none; }
+        }
+
+        /* Print Styles */
+        @media print {
+            .no-print { display: none; }
+            body { background: white; color: black; }
+            .glass, .glass-dark { background: white; border: 1px solid #ccc; }
+        }
+
+        /* Accessibility */
+        .focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-white" x-data="cksData()">
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-20 glass-dark">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-white">C.K.S Co., Ltd — Hệ Thống Vận Hành</h1>
+                </div>
+                <div class="text-sm text-slate-400">
+                    <span x-text="new Date().toLocaleDateString('vi-VN')"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Desktop Navigation -->
+    <nav class="desktop-tabs bg-slate-800 border-b border-slate-700 sticky top-16 z-10 glass-dark">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-8 relative">
+                <div class="absolute bottom-0 left-0 h-0.5 bg-blue-500 transition-all duration-300 tab-indicator"
+                     :style="`width: ${100/tabs.length}%; transform: translateX(${activeTab * 100}%)`"></div>
+                
+                <template x-for="(tab, index) in tabs" :key="tab.id">
+                    <button @click="setActiveTab(index)" 
+                            :class="activeTab === index ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'"
+                            class="border-b-2 py-4 px-1 text-sm font-medium transition-colors focus-visible">
+                        <span x-text="tab.name"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-tabs fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 z-20 glass-dark">
+        <div class="grid grid-cols-6 h-16">
+            <template x-for="(tab, index) in tabs" :key="tab.id">
+                <button @click="setActiveTab(index)" 
+                        :class="activeTab === index ? 'text-blue-400' : 'text-slate-400'"
+                        class="flex flex-col items-center justify-center space-y-1 text-xs transition-colors">
+                    <span x-text="tab.icon" class="text-lg"></span>
+                    <span x-text="tab.shortName" class="truncate"></span>
+                </button>
+            </template>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 main-content">
+        <!-- Tab Content -->
+        <div class="min-h-screen">
+            <!-- Tab 1: Tổng Quan -->
+            <div x-show="activeTab === 0" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- Key Metrics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <template x-for="metric in overview.keyMetrics" :key="metric.label">
+                        <div class="glass-dark rounded-lg p-6 hover-lift">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-slate-400" x-text="metric.label"></p>
+                                    <p class="kpi-number text-white" x-text="metric.value"></p>
+                                </div>
+                                <div class="text-2xl" x-text="metric.icon"></div>
+                            </div>
+                            <div class="mt-2 flex items-center text-sm">
+                                <span :class="metric.trend === 'up' ? 'trend-up' : 'trend-down'" 
+                                      x-text="metric.trend === 'up' ? '↑' : '↓'"></span>
+                                <span class="text-slate-400 ml-1" x-text="metric.description"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Implementation Progress -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Tiến Độ Triển Khai Hệ Thống</h2>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm text-slate-400 mb-2">
+                                <span>Hoàn thành</span>
+                                <span x-text="overview.implementationProgress + '%'"></span>
+                            </div>
+                            <div class="w-full bg-slate-700 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out"
+                                     :style="`width: ${overview.implementationProgress}%`"></div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="relative w-16 h-16">
+                                <svg class="w-16 h-16 progress-ring" viewBox="0 0 42 42">
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#374151" stroke-width="3"/>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#3b82f6" stroke-width="3"
+                                            stroke-dasharray="100 100" class="progress-ring-circle"
+                                            :stroke-dasharray="`${overview.implementationProgress} 100`"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-sm font-semibold text-white" x-text="overview.implementationProgress + '%'"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">Lộ Trình 8 Tuần</h2>
+                    <div class="space-y-4">
+                        <template x-for="phase in overview.timeline" :key="phase.week">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-16 text-sm text-slate-400" x-text="phase.week"></div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h3 class="font-medium text-white" x-text="phase.task"></h3>
+                                        <span :class="getStatusColor(phase.status)" 
+                                              class="px-2 py-1 text-xs rounded-full" 
+                                              x-text="getStatusText(phase.status)"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-700 rounded-full h-2">
+                                        <div :class="getStatusBarClass(phase.status)" 
+                                             class="h-2 rounded-full gantt-bar"
+                                             :style="`width: ${phase.progress}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Liên Kết Nhanh</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <template x-for="link in overview.quickLinks" :key="link.name">
+                            <a href="#" @click.prevent="setActiveTab(link.tabIndex)" 
+                               class="flex items-center p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors">
+                                <span class="text-lg mr-3" x-text="link.icon"></span>
+                                <span class="text-white" x-text="link.name"></span>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Pipeline Bán Hàng -->
+            <div x-show="activeTab === 1" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- Pipeline Stages -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">Quy Trình 8 Giai Đoạn</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <template x-for="(stage, index) in pipeline.stages" :key="stage.id">
+                            <div @click="toggleStageDetails(index)" 
+                                 class="pipeline-stage bg-slate-700 rounded-lg p-4 cursor-pointer hover-lift">
+                                <div class="text-center">
+                                    <div class="text-2xl mb-2" x-text="stage.icon"></div>
+                                    <h3 class="font-semibold text-white text-sm mb-1" x-text="stage.name"></h3>
+                                    <p class="text-xs text-slate-400" x-text="stage.maxTime"></p>
+                                    <div class="mt-2">
+                                        <div :class="getStatusColor(stage.status)" 
+                                             class="w-3 h-3 rounded-full mx-auto"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Stage Details -->
+                    <div x-show="selectedStage !== null" 
+                         x-transition class="bg-slate-800 rounded-lg p-4 mt-4">
+                        <template x-if="selectedStage !== null">
+                            <div>
+                                <h3 class="font-semibold text-white mb-3" 
+                                    x-text="pipeline.stages[selectedStage]?.name + ' - Chi Tiết'"></h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 class="text-sm font-medium text-slate-300 mb-2">Quy Tắc Xác Thực:</h4>
+                                        <ul class="text-sm text-slate-400 space-y-1">
+                                            <template x-for="rule in pipeline.stages[selectedStage]?.validation" :key="rule">
+                                                <li class="flex items-start">
+                                                    <span class="text-green-400 mr-2">•</span>
+                                                    <span x-text="rule"></span>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-slate-300 mb-2">Mô Tả:</h4>
+                                        <p class="text-sm text-slate-400" 
+                                           x-text="pipeline.stages[selectedStage]?.description"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Lost Deal Reasons -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Lý Do Mất Deal</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <template x-for="reason in pipeline.lostReasons" :key="reason">
+                            <div class="flex items-center p-3 bg-slate-700 rounded-lg">
+                                <span class="text-red-400 mr-3">•</span>
+                                <span class="text-white text-sm" x-text="reason"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Ma Trận Phân Quyền -->
+            <div x-show="activeTab === 2" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- Authority Matrix -->
+                <div class="glass-dark rounded-lg p-6 overflow-x-auto">
+                    <h2 class="text-lg font-semibold text-white mb-6">Ma Trận Phân Quyền</h2>
+                    <div class="min-w-full">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-slate-600">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-slate-300">Quyết Định</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">Sales Rep</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">PGĐ Sale</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">CEO</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-600">
+                                <template x-for="decision in authority.decisions" :key="decision.name">
+                                    <tr class="hover:bg-slate-700 transition-colors">
+                                        <td class="py-3 px-4 text-sm text-white" x-text="decision.name"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <div class="authority-cell mx-auto" 
+                                                 :class="getAuthorityClass(decision.sales)"
+                                                 :title="getAuthorityTitle(decision.sales)"></div>
+                                        </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <div class="authority-cell mx-auto" 
+                                                 :class="getAuthorityClass(decision.manager)"
+                                                 :title="getAuthorityTitle(decision.manager)"></div>
+                                        </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <div class="authority-cell mx-auto" 
+                                                 :class="getAuthorityClass(decision.ceo)"
+                                                 :title="getAuthorityTitle(decision.ceo)"></div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="mt-6 flex flex-wrap gap-4 text-sm">
+                        <div class="flex items-center">
+                            <div class="authority-cell authority-decide mr-2"></div>
+                            <span class="text-slate-300">Tự quyết</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="authority-cell authority-approve mr-2"></div>
+                            <span class="text-slate-300">Cần duyệt</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="authority-cell authority-inform mr-2"></div>
+                            <span class="text-slate-300">Thông báo</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="authority-cell authority-none mr-2"></div>
+                            <span class="text-slate-300">Không liên quan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Escalation Rules -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Quy Tắc Báo Cáo</h2>
+                    <div class="space-y-4">
+                        <template x-for="rule in authority.escalationRules" :key="rule.condition">
+                            <div class="flex items-center p-4 bg-slate-700 rounded-lg">
+                                <span class="text-2xl mr-4" x-text="rule.icon"></span>
+                                <div>
+                                    <h3 class="font-medium text-white" x-text="rule.condition"></h3>
+                                    <p class="text-sm text-slate-400" x-text="rule.action"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Price Formula -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Công Thức Giá</h2>
+                    <div class="bg-slate-700 rounded-lg p-4 text-center">
+                        <div class="text-lg text-white font-mono">
+                            Giá Bán Tối Thiểu = Giá Gốc × (1 + Biên Lợi Nhuận%)
+                        </div>
+                        <p class="text-sm text-slate-400 mt-2">
+                            Ví dụ: 100.000₫ × (1 + 25%) = 125.000₫
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: KPI & Scorecard -->
+            <div x-show="activeTab === 3" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- Weekly KPIs -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">KPI Hàng Tuần</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="kpi in kpis.weekly" :key="kpi.metric">
+                            <div class="bg-slate-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-medium text-white text-sm" x-text="kpi.metric"></h3>
+                                    <span class="text-lg" x-text="kpi.icon"></span>
+                                </div>
+                                <div class="flex items-baseline">
+                                    <span class="text-2xl font-bold text-white" x-text="kpi.current"></span>
+                                    <span class="text-slate-400 ml-2">/ </span>
+                                    <span class="text-slate-400" x-text="kpi.target"></span>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="w-full bg-slate-600 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                             :style="`width: ${Math.min((kpi.current / kpi.target) * 100, 100)}%`"></div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1" x-text="kpi.description"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Monthly KPIs -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">KPI Hàng Tháng</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <template x-for="kpi in kpis.monthly" :key="kpi.metric">
+                            <div class="bg-slate-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h3 class="font-medium text-white" x-text="kpi.metric"></h3>
+                                        <div class="flex items-baseline mt-1">
+                                            <span class="text-xl font-bold text-white" x-text="kpi.current"></span>
+                                            <span class="text-slate-400 ml-2" x-text="'/ ' + kpi.target"></span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1" x-text="kpi.description"></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="relative w-12 h-12">
+                                            <svg class="w-12 h-12 progress-ring" viewBox="0 0 42 42">
+                                                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#374151" stroke-width="3"/>
+                                                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#3b82f6" stroke-width="3"
+                                                        stroke-dasharray="100 100" class="progress-ring-circle"
+                                                        :stroke-dasharray="`${Math.min((kpi.current / kpi.target) * 100, 100)} 100`"/>
+                                            </svg>
+                                            <div class="absolute inset-0 flex items-center justify-center">
+                                                <span class="text-xs font-semibold text-white" 
+                                                      x-text="Math.round((kpi.current / kpi.target) * 100) + '%'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- EOS Level 10 Meeting -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">EOS Level 10 Meeting (90 phút)</h2>
+                    <div class="space-y-3">
+                        <template x-for="segment in kpis.eosMeeting" :key="segment.name">
+                            <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="text-lg mr-3" x-text="segment.icon"></span>
+                                    <span class="font-medium text-white" x-text="segment.name"></span>
+                                </div>
+                                <span class="text-slate-400" x-text="segment.duration"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: SOP & Tài Liệu -->
+            <div x-show="activeTab === 4" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- SOP Checklist -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">Danh Sách SOP</h2>
+                    <div class="space-y-4">
+                        <template x-for="sop in sops.list" :key="sop.name">
+                            <div @click="toggleSop(sop)" 
+                                 class="bg-slate-700 rounded-lg p-4 cursor-pointer hover:bg-slate-600 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div :class="getSopStatusIcon(sop.status)" class="mr-3"></div>
+                                        <h3 class="font-medium text-white" x-text="sop.name"></h3>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <span :class="getStatusColor(sop.status)" 
+                                              class="px-2 py-1 text-xs rounded-full" 
+                                              x-text="getStatusText(sop.status)"></span>
+                                        <span class="text-slate-400" x-text="sop.expanded ? '−' : '+'"></span>
+                                    </div>
+                                </div>
+                                <div x-show="sop.expanded" x-transition class="mt-4 pl-6">
+                                    <p class="text-sm text-slate-400 mb-3" x-text="sop.description"></p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="deliverable in sop.deliverables" :key="deliverable">
+                                            <span class="px-2 py-1 bg-slate-600 rounded text-xs text-slate-300" 
+                                                  x-text="deliverable"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Document Links -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Liên Kết Tài Liệu</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <template x-for="doc in sops.documents" :key="doc.name">
+                            <a href="#" class="flex items-center p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors">
+                                <span class="text-lg mr-3" x-text="doc.icon"></span>
+                                <div>
+                                    <h3 class="font-medium text-white" x-text="doc.name"></h3>
+                                    <p class="text-xs text-slate-400" x-text="doc.description"></p>
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- CRM Adoption Metrics -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">CRM Adoption Timeline</h2>
+                    <div class="space-y-4">
+                        <template x-for="metric in sops.crmAdoption" :key="metric.week">
+                            <div class="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium text-white" x-text="metric.week"></h3>
+                                    <p class="text-sm text-slate-400" x-text="metric.target"></p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-white" x-text="metric.current + '%'"></div>
+                                    <div class="w-20 bg-slate-600 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                             :style="`width: ${metric.current}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Bảo Mật & Offboarding -->
+            <div x-show="activeTab === 5" x-transition:enter="slide-fade-enter" 
+                 x-transition:enter-end="slide-fade-enter-active" class="space-y-6">
+                
+                <!-- CRM Permissions -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-6">Phân Quyền CRM</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-slate-600">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-slate-300">Quyền</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">Sales</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">PGĐ</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-slate-300">CEO</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-600">
+                                <template x-for="permission in security.crmPermissions" :key="permission.name">
+                                    <tr class="hover:bg-slate-700 transition-colors">
+                                        <td class="py-3 px-4 text-sm text-white" x-text="permission.name"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span x-text="permission.sales ? '✅' : '❌'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span x-text="permission.manager ? '✅' : '❌'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span x-text="permission.ceo ? '✅' : '❌'"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Offboarding Checklist -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Offboarding Checklist (24h)</h2>
+                    <div class="space-y-3">
+                        <template x-for="(item, index) in security.offboardingChecklist" :key="index">
+                            <label class="flex items-center p-3 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600 transition-colors">
+                                <input type="checkbox" 
+                                       :checked="item.completed"
+                                       @change="item.completed = $event.target.checked; saveOffboardingState()"
+                                       class="mr-3 w-4 h-4 rounded focus:ring-blue-500">
+                                <span class="text-white" x-text="item.task"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Security Risks -->
+                <div class="glass-dark rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-white mb-4">Rủi Ro & Giảm Thiểu</h2>
+                    <div class="space-y-4">
+                        <template x-for="risk in security.risks" :key="risk.risk">
+                            <div class="bg-slate-700 rounded-lg p-4">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h3 class="font-medium text-white" x-text="risk.risk"></h3>
+                                    <span :class="risk.level === 'Cao' ? 'bg-red-500' : risk.level === 'Trung bình' ? 'bg-yellow-500' : 'bg-green-500'" 
+                                          class="px-2 py-1 text-xs rounded text-white" 
+                                          x-text="risk.level"></span>
+                                </div>
+                                <p class="text-sm text-slate-400" x-text="risk.mitigation"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 mt-16 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between text-sm text-slate-400">
+                <span>CKS Operations Dashboard v1.0 — Powered by Tytron</span>
+                <span x-text="'Cập nhật: ' + new Date().toLocaleString('vi-VN')"></span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function cksData() {
+            return {
+                activeTab: 0,
+                selectedStage: null,
+                
+                tabs: [
+                    { id: 'overview', name: 'Tổng Quan', shortName: 'Tổng Quan', icon: '📊' },
+                    { id: 'pipeline', name: 'Pipeline Bán Hàng', shortName: 'Pipeline', icon: '🔄' },
+                    { id: 'authority', name: 'Ma Trận Phân Quyền', shortName: 'Phân Quyền', icon: '🔐' },
+                    { id: 'kpi', name: 'KPI & Scorecard', shortName: 'KPI', icon: '📈' },
+                    { id: 'sop', name: 'SOP & Tài Liệu', shortName: 'SOP', icon: '📋' },
+                    { id: 'security', name: 'Bảo Mật & Offboarding', shortName: 'Bảo Mật', icon: '🛡️' }
+                ],
+
+                /* === EDITABLE DATA SECTION === */
+                /* CEO có thể edit phần này để cập nhật tiến độ */
+                
+                overview: {
+                    keyMetrics: [
+                        { label: 'Doanh thu năm', value: '30-80 tỷ', icon: '💰', trend: 'up', description: 'Mục tiêu 2024' },
+                        { label: 'Khách hàng active', value: '30', icon: '👥', trend: 'up', description: 'Mua định kỳ' },
+                        { label: 'Đội ngũ sales', value: '5', icon: '🎯', trend: 'up', description: 'Mở rộng lên 7' },
+                        { label: 'Pipeline stages', value: '8', icon: '⚡', trend: 'up', description: 'Quy trình chuẩn' }
+                    ],
+                    implementationProgress: 25, // Có thể edit từ 0-100
+                    timeline: [
+                        { week: 'Tuần 1-2', task: 'Setup CRM', status: 'in-progress', progress: 60 },
+                        { week: 'Tuần 2-3', task: 'Data Migration', status: 'not-started', progress: 0 },
+                        { week: 'Tuần 3', task: 'Quick Wins + Pilot', status: 'not-started', progress: 0 },
+                        { week: 'Tuần 4', task: 'Training', status: 'not-started', progress: 0 },
+                        { week: 'Tuần 5-8', task: 'Go-Live & Adoption', status: 'not-started', progress: 0 }
+                    ],
+                    quickLinks: [
+                        { name: 'Pipeline Bán Hàng', icon: '🔄', tabIndex: 1 },
+                        { name: 'KPI Dashboard', icon: '📈', tabIndex: 3 },
+                        { name: 'SOPs', icon: '📋', tabIndex: 4 }
+                    ]
+                },
+
+                pipeline: {
+                    stages: [
+                        { 
+                            id: 1, name: 'Lead Mới', icon: '👋', maxTime: 'max 3 ngày', status: 'done',
+                            validation: ['Thông tin liên hệ đầy đủ', 'Nguồn lead rõ ràng', 'Assigned sales rep'],
+                            description: 'Lead mới vào hệ thống, cần liên hệ trong 3 ngày'
+                        },
+                        { 
+                            id: 2, name: 'Đã Tiếp Cận', icon: '📞', maxTime: 'max 5 ngày', status: 'in-progress',
+                            validation: ['Đã gọi điện hoặc email', 'Ghi nhận phản hồi', 'Đánh giá mức độ quan tâm'],
+                            description: 'Đã liên hệ thành công, xác định nhu cầu'
+                        },
+                        { 
+                            id: 3, name: 'Gửi Mẫu', icon: '📦', maxTime: 'max 10 ngày', status: 'in-progress',
+                            validation: ['Xác nhận địa chỉ nhận', 'Chọn mẫu phù hợp', 'Tracking gửi hàng'],
+                            description: 'Gửi mẫu sản phẩm để khách thử nghiệm'
+                        },
+                        { 
+                            id: 4, name: 'Trial Order', icon: '🧪', maxTime: 'max 14 ngày', status: 'not-started',
+                            validation: ['Khách test mẫu OK', 'Báo giá trial order', 'Thỏa thuận điều kiện'],
+                            description: 'Đơn hàng thử nghiệm đầu tiên'
+                        },
+                        { 
+                            id: 5, name: 'Báo Giá Volume', icon: '💵', maxTime: 'max 5 ngày', status: 'not-started',
+                            validation: ['Xác định volume cần', 'Tính giá theo bậc thang', 'Điều kiện payment'],
+                            description: 'Báo giá cho đơn hàng lớn thường xuyên'
+                        },
+                        { 
+                            id: 6, name: 'Đàm Phán', icon: '🤝', maxTime: 'max 14 ngày', status: 'not-started',
+                            validation: ['Thương lượng giá', 'Thỏa thuận delivery', 'Ký contract'],
+                            description: 'Đàm phán điều kiện cuối cùng'
+                        },
+                        { 
+                            id: 7, name: 'Đơn Đầu', icon: '🎉', maxTime: 'vô thời hạn', status: 'not-started',
+                            validation: ['PO chính thức', 'Delivery thành công', 'Thanh toán đúng hạn'],
+                            description: 'Đơn hàng chính thức đầu tiên'
+                        },
+                        { 
+                            id: 8, name: 'Mua Lặp Lại', icon: '🔄', maxTime: 'vô thời hạn', status: 'not-started',
+                            validation: ['Tần suất mua ổn định', 'Relationship management', 'Up-sell/cross-sell'],
+                            description: 'Khách hàng thường xuyên'
+                        }
+                    ],
+                    lostReasons: [
+                        'Giá không cạnh tranh',
+                        'Chất lượng không đạt',
+                        'Lead time quá dài',
+                        'Không có nhu cầu thực tế',
+                        'Đã có supplier cố định',
+                        'Ngân sách không đủ',
+                        'Quyết định trì hoãn',
+                        'Không liên lạc được'
+                    ]
+                },
+
+                authority: {
+                    decisions: [
+                        { name: 'Tiếp nhận lead', sales: 'decide', manager: 'inform', ceo: 'inform' },
+                        { name: 'Gửi mẫu ≤2kg', sales: 'decide', manager: 'inform', ceo: 'none' },
+                        { name: 'Gửi mẫu >2kg', sales: 'approve', manager: 'decide', ceo: 'inform' },
+                        { name: 'Báo giá trong biên LN', sales: 'decide', manager: 'inform', ceo: 'none' },
+                        { name: 'Báo giá dưới biên LN min', sales: 'none', manager: 'approve', ceo: 'decide' },
+                        { name: 'Báo giá < 200 triệu', sales: 'decide', manager: 'inform', ceo: 'none' },
+                        { name: 'Báo giá 200-500 triệu', sales: 'approve', manager: 'decide', ceo: 'inform' },
+                        { name: 'Báo giá > 500 triệu', sales: 'none', manager: 'approve', ceo: 'decide' },
+                        { name: 'Payment COD-Net15', sales: 'decide', manager: 'inform', ceo: 'none' },
+                        { name: 'Payment Net30', sales: 'approve', manager: 'decide', ceo: 'inform' },
+                        { name: 'Payment Net60-LC', sales: 'none', manager: 'approve', ceo: 'decide' },
+                        { name: 'Discount dưới biên', sales: 'none', manager: 'none', ceo: 'decide' }
+                    ],
+                    escalationRules: [
+                        { condition: '1x max time', action: 'Alert Sales Rep', icon: '⚠️' },
+                        { condition: '2x max time', action: 'Alert PGĐ Sales', icon: '🚨' },
+                        { condition: '3x max time', action: 'Alert CEO', icon: '🔥' }
+                    ]
+                },
+
+                kpis: {
+                    weekly: [
+                        { metric: 'Leads mới/tuần', current: 8, target: 15, icon: '📥', description: '≥3 per sales' },
+                        { metric: 'Cuộc gọi+visit', current: 45, target: 75, icon: '📞', description: '≥15 per sales' },
+                        { metric: 'Mẫu gửi/tuần', current: 3, target: 5, icon: '📦', description: 'Team target' },
+                        { metric: 'Pipeline value', current: 1.5, target: 2.0, icon: '💰', description: 'Tỷ VND' }
+                    ],
+                    monthly: [
+                        { metric: 'Revenue theo plan', current: 6.5, target: 8.0, icon: '💰', description: 'Tỷ VND/tháng' },
+                        { metric: 'Khách active', current: 28, target: 35, icon: '👥', description: 'Mua định kỳ' },
+                        { metric: 'Gross margin', current: 22, target: 25, icon: '📊', description: 'Phần trăm' },
+                        { metric: 'Pipeline conversion', current: 12, target: 15, icon: '🔄', description: 'Phần trăm' }
+                    ],
+                    eosMeeting: [
+                        { name: 'Segue', duration: '5 phút', icon: '👋' },
+                        { name: 'Scorecard', duration: '5 phút', icon: '📊' },
+                        { name: 'Rocks', duration: '5 phút', icon: '🎯' },
+                        { name: 'Headlines', duration: '5 phút', icon: '📰' },
+                        { name: 'To-Do', duration: '5 phút', icon: '✅' },
+                        { name: 'IDS', duration: '25 phút', icon: '🔍' }
+                    ]
+                },
+
+                sops: {
+                    list: [
+                        { 
+                            name: 'CRM Setup & Config', 
+                            status: 'in-progress', 
+                            expanded: false,
+                            description: 'Thiết lập và cấu hình hệ thống CRM',
+                            deliverables: ['Database schema', 'User roles', 'Workflow config', 'Integration setup']
+                        },
+                        { 
+                            name: 'Sales Pipeline SOP', 
+                            status: 'done', 
+                            expanded: false,
+                            description: 'Quy trình 8 bước bán hàng tiêu chuẩn',
+                            deliverables: ['Stage definitions', 'Validation rules', 'Escalation matrix']
+                        },
+                        { 
+                            name: 'Product Catalog + Pricing', 
+                            status: 'not-started', 
+                            expanded: false,
+                            description: 'Danh mục sản phẩm và bảng giá',
+                            deliverables: ['Product database', 'Price matrix', 'Margin calculator']
+                        },
+                        { 
+                            name: 'Sales Playbook', 
+                            status: 'not-started', 
+                            expanded: false,
+                            description: 'Sổ tay bán hàng và script chuẩn',
+                            deliverables: ['Call scripts', 'Email templates', 'Objection handling']
+                        },
+                        { 
+                            name: 'Customer Management SOP', 
+                            status: 'not-started', 
+                            expanded: false,
+                            description: 'Quy trình chăm sóc khách hàng',
+                            deliverables: ['Account management', 'Relationship mapping', 'Retention strategy']
+                        },
+                        { 
+                            name: '30-day Onboarding Program', 
+                            status: 'not-started', 
+                            expanded: false,
+                            description: 'Chương trình đào tạo nhân viên mới',
+                            deliverables: ['Training curriculum', 'Assessment criteria', 'Mentorship program']
+                        }
+                    ],
+                    documents: [
+                        { name: 'CRM User Guide', icon: '📖', description: 'Hướng dẫn sử dụng CRM' },
+                        { name: 'Sales Training Materials', icon: '🎓', description: 'Tài liệu đào tạo bán hàng' },
+                        { name: 'Product Knowledge Base', icon: '📚', description: 'Kiến thức sản phẩm' },
+                        { name: 'Compliance Guidelines', icon: '⚖️', description: 'Quy định tuân thủ' }
+                    ],
+                    crmAdoption: [
+                        { week: 'Week 5', target: 'Login rate >70%', current: 45 },
+                        { week: 'Week 6', target: 'Deal completion >60%', current: 30 },
+                        { week: 'Week 7', target: 'Fix UX issues', current: 80 },
+                        { week: 'Week 8', target: 'Source of truth >80%', current: 15 }
+                    ]
+                },
+
+                security: {
+                    crmPermissions: [
+                        { name: 'Export data', sales: false, manager: false, ceo: true },
+                        { name: 'Xem SĐT đầy đủ', sales: true, manager: true, ceo: true },
+                        { name: 'Xem khách người khác', sales: false, manager: true, ceo: true },
+                        { name: 'Xóa deal', sales: false, manager: true, ceo: true },
+                        { name: 'Edit pricing', sales: false, manager: false, ceo: true },
+                        { name: 'Reassign accounts', sales: false, manager: true, ceo: true }
+                    ],
+                    offboardingChecklist: [
+                        { task: 'Khóa CRM account', completed: false },
+                        { task: 'Đổi mật khẩu email', completed: false },
+                        { task: 'Thu hồi thiết bị', completed: false },
+                        { task: 'Revoke Zalo OA', completed: false },
+                        { task: 'Xuất activity log', completed: false },
+                        { task: 'Reassign deals', completed: false },
+                        { task: 'Gọi top 5-10 khách', completed: false },
+                        { task: 'Kiểm tra email 30 ngày', completed: false },
+                        { task: 'Check export logs', completed: false }
+                    ],
+                    risks: [
+                        { risk: 'Data leak khi nhân viên nghỉ việc', level: 'Cao', mitigation: 'Offboarding checklist 24h + revoke access' },
+                        { risk: 'Khách hàng theo sales rep', level: 'Cao', mitigation: 'Relationship handover + CEO call top accounts' },
+                        { risk: 'Pricing info bị leak', level: 'Trung bình', mitigation: 'Role-based permissions + audit logs' },
+                        { risk: 'Competitor infiltration', level: 'Trung bình', mitigation: 'Background checks + NDAs' }
+                    ]
+                },
+
+                /* === END EDITABLE DATA SECTION === */
+
+                init() {
+                    // Load saved offboarding state
+                    const saved = localStorage.getItem('cks-offboarding');
+                    if (saved) {
+                        const savedData = JSON.parse(saved);
+                        savedData.forEach((item, index) => {
+                            if (this.security.offboardingChecklist[index]) {
+                                this.security.offboardingChecklist[index].completed = item.completed;
+                            }
+                        });
+                    }
+
+                    // Scroll to top on init
+                    window.scrollTo(0, 0);
+                },
+
+                setActiveTab(index) {
+                    this.activeTab = index;
+                    this.selectedStage = null;
+                    window.scrollTo(0, 0);
+                },
+
+                toggleStageDetails(index) {
+                    this.selectedStage = this.selectedStage === index ? null : index;
+                },
+
+                toggleSop(sop) {
+                    sop.expanded = !sop.expanded;
+                },
+
+                saveOffboardingState() {
+                    localStorage.setItem('cks-offboarding', JSON.stringify(this.security.offboardingChecklist));
+                },
+
+                getStatusColor(status) {
+                    const colors = {
+                        'done': 'bg-green-500 text-green-100',
+                        'in-progress': 'bg-yellow-500 text-yellow-100',
+                        'blocked': 'bg-red-500 text-red-100',
+                        'not-started': 'bg-gray-500 text-gray-100'
+                    };
+                    return colors[status] || colors['not-started'];
+                },
+
+                getStatusText(status) {
+                    const texts = {
+                        'done': 'Hoàn thành',
+                        'in-progress': 'Đang thực hiện',
+                        'blocked': 'Bị chặn',
+                        'not-started': 'Chưa bắt đầu'
+                    };
+                    return texts[status] || texts['not-started'];
+                },
+
+                getStatusBarClass(status) {
+                    return {
+                        'done': 'gantt-done',
+                        'in-progress': 'gantt-in-progress',
+                        'blocked': 'gantt-blocked',
+                        'not-started': 'gantt-not-started'
+                    }[status];
+                },
+
+                getSopStatusIcon(status) {
+                    const icons = {
+                        'done': '✅',
+                        'in-progress': '🔄',
+                        'blocked': '❌',
+                        'not-started': '⏸️'
+                    };
+                    return icons[status] || '⏸️';
+                },
+
+                getAuthorityClass(level) {
+                    const classes = {
+                        'decide': 'authority-decide',
+                        'approve': 'authority-approve',
+                        'inform': 'authority-inform',
+                        'none': 'authority-none'
+                    };
+                    return classes[level] || 'authority-none';
+                },
+
+                getAuthorityTitle(level) {
+                    const titles = {
+                        'decide': 'Tự quyết định',
+                        'approve': 'Cần phê duyệt',
+                        'inform': 'Được thông báo',
+                        'none': 'Không liên quan'
+                    };
+                    return titles[level] || 'Không liên quan';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
